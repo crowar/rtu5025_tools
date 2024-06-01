@@ -1,0 +1,12 @@
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/bin/Debug/net8.0/RtuCommon.deps.json
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/bin/Debug/net8.0/RtuCommon.dll
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/bin/Debug/net8.0/RtuCommon.pdb
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/RtuCommon.csproj.AssemblyReference.cache
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/RtuCommon.GeneratedMSBuildEditorConfig.editorconfig
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/RtuCommon.AssemblyInfoInputs.cache
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/RtuCommon.AssemblyInfo.cs
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/RtuCommon.csproj.CoreCompileInputs.cache
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/RtuCommon.dll
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/refint/RtuCommon.dll
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/RtuCommon.pdb
+/Users/nikolay/projects/dotnet/rtu5025Emulator/src/RtuCommon/obj/Debug/net8.0/ref/RtuCommon.dll

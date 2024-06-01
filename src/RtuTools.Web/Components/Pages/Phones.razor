@@ -1,0 +1,342 @@
+@page "/phones"
+@using RtuCommon
+@using RtuCommon.Interfaces
+@using RtuCommon.Models
+@using RtuCommon.Models.Blocks
+@using RtuTools.Web.Components.Pages.Modals
+@using RtuTools.Web.Interfaces
+@using RtuTools.Web.Models
+
+@inject IExcelFileService ExcelFileService
+@inject ILogger<Phones> Logger
+@inject IJSRuntime JsRuntime
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<PageTitle>Contacts</PageTitle>
+<HeadContent>
+    <script src="/export_helper.js"></script>
+</HeadContent>
+
+<h3>Contacts</h3>
+
+<Toasts class="p-3" Messages="_messages" AutoHide="true" Delay="6000" Placement="ToastsPlacement.TopRight"/>
+
+<div class="container">
+    <div class="row mb-3">
+        <h4>Device: <small class="text-muted">@(_selectedDevice ?? "Not selected")</small></h4>
+    </div>
+    <div class="mb-3">
+        <Dropdown>
+            <DropdownToggleButton Color="ButtonColor.Primary">Select device &nbsp;</DropdownToggleButton>
+            <DropdownMenu>
+                @foreach (var device in _devices)
+                {
+                    <DropdownItem Type="ButtonType.Link" @onclick="() => _selectedDevice = device">@device</DropdownItem>
+                }
+            </DropdownMenu>
+        </Dropdown>
+
+        <Button Color="ButtonColor.Primary" @onclick="ReadDataFromDevice">Read</Button>
+        <Button Color="ButtonColor.Primary" @onclick="WriteDataToDevice">Save</Button>
+        <Button Color="ButtonColor.Primary" @onclick="ImportContacts">Import XLS</Button>
+        <Button Color="ButtonColor.Primary" @onclick="ExportContacts">Export XLS</Button>
+
+        <Button Color="ButtonColor.Success" @onclick="AddContacts">Add</Button>
+        <Button Color="ButtonColor.Danger" @onclick="DeleteSelectedContacts">Delete</Button>
+    </div>
+
+    @if (_contacts == null)
+    {
+        <div class="row">
+
+            @if (_isStartLoading)
+            {
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning" role="alert">
+                    Data not loaded
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <Grid
+                @ref="_contactsGrid"
+                TItem="ContactInfo"
+                class="table table-hover table-bordered table-striped"
+                AllowFiltering="true"
+                AllowSelection="true"
+                AllowSorting="true"
+                AllowRowClick="true"
+                SelectionMode="GridSelectionMode.Multiple"
+                SelectedItemsChanged="OnSelectedItemsChanged"
+                OnRowDoubleClick="OnRowDoubleClick"
+                DataProvider="ContactsDataProvider"
+                Responsive="true">
+                <GridColumn TItem="ContactInfo" HeaderText="Phone" PropertyName="Phone">
+                    @context.Phone
+                </GridColumn>
+                <GridColumn TItem="ContactInfo" HeaderText="Period start" PropertyName="StartDateTime">
+                    @context.StartDateTime
+                </GridColumn>
+                <GridColumn TItem="ContactInfo" HeaderText="Period end" PropertyName="EndDateTime">
+                    @context.EndDateTime
+                </GridColumn>
+                <GridColumn TItem="ContactInfo" HeaderText="Always active" PropertyName="Always">
+                    @context.Always
+                </GridColumn>
+            </Grid>
+        </div>
+    }
+
+</div>
+
+<Modal @ref="_modal" />
+
+@code {
+    
+    private Grid<ContactInfo> _contactsGrid;
+    private Modal _modal = default!;
+
+
+    private readonly IEnumerable<string> _devices = RtuHelper.GetAvailablePorts();
+    private string? _selectedDevice;
+
+    private bool _isStartLoading;
+
+    private List<ContactInfo>? _contacts;
+
+
+    private IRtuModule? _rtuModule;
+
+
+    private List<ToastMessage> _messages = [];
+
+    private void ShowMessage(ToastType toastType, string title, string message) => _messages.Add(new ToastMessage
+    {
+        Type = toastType,
+        Title = title,
+        HelpText = $"{DateTime.Now}",
+        Message = message,
+    });
+
+    private async Task ReadDataFromDevice()
+    {
+        _contacts = ReadData();
+    }
+
+    private async Task WriteDataToDevice()
+    {
+        if (_contacts == null)
+        {
+            ShowMessage(ToastType.Warning, "Warning", "Data not loaded");
+            return;
+        }
+        
+        if (_selectedDevice == null)
+        {
+            ShowMessage(ToastType.Warning, "Warning", "Device not selected");
+            return;
+        }
+        
+        _rtuModule ??= new RtuModule(Logger, _selectedDevice);
+
+        _rtuModule.Connect();
+        var numberBlock = new NumberBlock
+        {
+            Contacts = _contacts
+        };
+        
+        _rtuModule.Write(numberBlock);
+        _rtuModule.Disconnect();
+        
+        ShowMessage(ToastType.Success, "Success", "Data saved");
+    }
+
+    private async Task AddContacts()
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "EventType", EventType.Add },
+            { "ParamPhone", string.Empty },
+            { "ParamAlways", false },
+            { "ParamStartDateTime", DateTime.Now },
+            { "ParamEndDateTime", DateTime.Now.AddMonths(3) },
+            { "OnclickCallback", EventCallback.Factory.Create<ContactInfoEventData>(this, UpdateCollection) }
+        };
+
+        await _modal.ShowAsync<Modals.PhoneModal>(title: "Add contact", parameters: parameters);
+    }
+
+    private Task DeleteSelectedContacts()
+    {
+        _contacts?.RemoveAll(c => _selectedContacts.Contains(c));
+        _selectedContacts = [];
+
+        _contactsGrid.RefreshDataAsync();
+        
+        return Task.CompletedTask;
+    }
+
+    private List<ContactInfo>? ReadData()
+    {
+        if (_selectedDevice == null)
+        {
+            ShowMessage(ToastType.Warning, "Warning", "Device not selected");
+
+            return null;
+        }
+
+        _isStartLoading = true;
+
+        _rtuModule ??= new RtuModule(Logger, _selectedDevice);
+
+
+        _rtuModule.Connect();
+        var contacts = _rtuModule.Read<NumberBlock>();
+        _rtuModule.Disconnect();
+
+        _isStartLoading = false;
+
+        ShowMessage(ToastType.Success, "Success", "Data loaded");
+        
+        return contacts.Contacts;
+    }
+
+    private async Task<GridDataProviderResult<ContactInfo>> ContactsDataProvider(GridDataProviderRequest<ContactInfo> request)
+    {
+        Logger.LogDebug("ContactsDataProvider called...");
+
+        if (_contacts is null)
+            _contacts = ReadData() ?? [];
+
+        return await Task.FromResult(request.ApplyTo(_contacts));
+    }
+
+
+    private HashSet<ContactInfo> _selectedContacts = [];
+
+    private Task OnSelectedItemsChanged(HashSet<ContactInfo> contacts)
+    {
+        _selectedContacts = contacts is not null && contacts.Any() ? contacts : [];
+        return Task.CompletedTask;
+    }
+
+    private async Task OnRowDoubleClick(GridRowEventArgs<ContactInfo> args)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "EventType", EventType.Change },
+            { "ParamPhone", args.Item.Phone },
+            { "ParamAlways", args.Item.Always },
+            { "ParamStartDateTime", args.Item.StartDateTime ?? DateTime.Now },
+            { "ParamEndDateTime", args.Item.EndDateTime ?? DateTime.Now.AddMonths(3) },
+            { "OnclickCallback", EventCallback.Factory.Create<ContactInfoEventData>(this, UpdateCollection) }
+        };
+
+        await _modal.ShowAsync<Modals.PhoneModal>(title: "Edit contact", parameters: parameters);
+    }
+
+    private void UpdateCollection(ContactInfoEventData eventData)
+    {
+        Logger.LogDebug("UpdateCollection called...");
+        
+        switch (eventData.EventType)
+        {
+            case EventType.Add:
+            {
+                _contacts ??= [];
+            
+                if (_contacts.Any(r=>r.Phone == eventData.ContactInfo.Phone))
+                {
+                    ShowMessage(ToastType.Warning, "Warning", "Contact with this phone already exists");
+                    return;
+                }
+            
+                _contacts.Add(new ContactInfo
+                {
+                    Phone = eventData.ContactInfo.Phone,
+                    Always = eventData.ContactInfo.Always,
+                    StartDateTime = eventData.ContactInfo.StartDateTime,
+                    EndDateTime = eventData.ContactInfo.EndDateTime
+                });
+                
+                ShowMessage(ToastType.Success, "Success", "Contact added");
+                
+                break;
+            }
+            case EventType.Change:
+            {
+                var contact = _contacts?.FirstOrDefault(c => c.Phone == eventData.OldPhone);
+                if (contact != null)
+                {
+                    contact.Phone = eventData.ContactInfo.Phone;
+                    contact.Always = eventData.ContactInfo.Always;
+                    contact.StartDateTime = eventData.ContactInfo.StartDateTime;
+                    contact.EndDateTime = eventData.ContactInfo.EndDateTime;
+                }
+
+                ShowMessage(ToastType.Success, "Success", "Contact changed");
+                
+                break;
+            }
+        }
+
+        _modal.HideAsync();
+        
+        _contactsGrid.RefreshDataAsync();
+    }
+
+    private async Task ImportContacts()
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "Filter", ".xlsx" },
+            { "Title", "Upload" },
+            { "AllowMulitple", false },
+            { "OnCallbackFunc", EventCallback.Factory.Create<UploadModal.FileData[]>(this, ParseFile) }
+        };
+        
+        await _modal.ShowAsync<Modals.UploadModal>(title: "Import contacts", parameters: parameters);
+    }
+
+    private async Task ParseFile(UploadModal.FileData[] fileData)
+    {
+        Logger.LogDebug("ParseFile called...");
+        
+        var contacts = await ExcelFileService.GetCollections<ContactInfoReport>(fileData.First().Bytes);
+        _contacts = contacts.Select(r => r.ToContactInfo()).ToList();
+        
+        _modal.HideAsync();
+    }
+
+    private async Task ExportContacts()
+    {
+        if (_contacts == null)
+        {
+            ShowMessage(ToastType.Warning, "Warning", "Data not loaded");
+            return;
+        }
+
+        var fileName = $"contacts_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+        var bytes = await ExcelFileService.GetFileData(_contacts.Select(r=>new ContactInfoReport(r)));
+
+        await JsRuntime.InvokeVoidAsync(
+            "downloadFromByteArray", new
+            {
+                ByteArray = bytes,
+                FileName = fileName,
+                ContentType = "application/vnd.ms-excel"
+            });
+    }
+
+    
+}

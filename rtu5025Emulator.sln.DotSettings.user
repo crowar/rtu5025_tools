@@ -1,0 +1,12 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;
+  &lt;Assembly Path="/Users/nikolay/.nuget/packages/hidsharp/2.1.0/lib/netstandard2.0/HidSharp.dll" /&gt;
+  &lt;Assembly Path="/Users/nikolay/.nuget/packages/libusbdotnet/2.2.29/lib/netcoreapp2.0/LibUsbDotNet.LibUsbDotNet.dll" /&gt;
+  &lt;Assembly Path="/Users/nikolay/.nuget/packages/libusbdotnet/3.0.102-alpha/lib/netcoreapp3.1/LibUsbDotNet.dll" /&gt;
+  &lt;Assembly Path="/Users/nikolay/.nuget/packages/blazor.bootstrap/2.2.1/lib/net6.0/BlazorBootstrap.dll" /&gt;
+  &lt;Assembly Path="/Users/nikolay/.nuget/packages/serilog.enrichers.correlationid/3.0.1/lib/netstandard2.1/Serilog.Enrichers.CorrelationId.dll" /&gt;
+  &lt;Assembly Path="/Users/nikolay/.nuget/packages/serilog.enrichers.environment/2.3.0/lib/netstandard2.0/Serilog.Enrichers.Environment.dll" /&gt;
+  &lt;Assembly Path="/Users/nikolay/.nuget/packages/serilog.enrichers.process/2.0.2/lib/netstandard2.0/Serilog.Enrichers.Process.dll" /&gt;
+  &lt;Assembly Path="/Users/nikolay/.nuget/packages/serilog.enrichers.thread/3.1.0/lib/netstandard2.0/Serilog.Enrichers.Thread.dll" /&gt;
+&lt;/AssemblyExplorer&gt;</s:String>
+	<s:Boolean x:Key="/Default/Monitoring/IsToolWindowHidden/@EntryValue">True</s:Boolean></wpf:ResourceDictionary>

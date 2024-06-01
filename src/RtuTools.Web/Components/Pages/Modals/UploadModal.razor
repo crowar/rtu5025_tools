@@ -1,0 +1,89 @@
+@inject IJSRuntime JSRuntime
+
+@if (AllowMulitple)
+{
+    <input id="Xinputfile00" type="file" class="form-control" accept="@Filter" @onchange="UploadFile" multiple hidden/>
+}
+else
+{
+    <input id="Xinputfile00" type="file" class="form-control" accept="@Filter" @onchange="UploadFile" hidden/>
+}
+
+<div class="modal-footer">
+    <Button class="mt-3" Color="ButtonColor.Success" Type="ButtonType.Button" @onclick="ClickUpload">@Title</Button>
+</div>
+
+@code {
+
+    [Parameter] public FileData[] Files { get; set; }
+
+    [Parameter] public string Filter { get; set; }
+
+    [Parameter] public string Title { get; set; }
+
+    [Parameter] public bool AllowMulitple { get; set; }
+
+    [Parameter] public EventCallback<FileData[]> OnCallbackFunc { get; set; }
+
+    private IJSObjectReference? _jsModule;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>(
+            "import", "/Components/Pages/Modals/UploadModal.razor.js");
+        
+        await base.OnInitializedAsync();
+    }
+
+    async Task UploadFile()
+    {
+        if (_jsModule == null)
+        {
+            return;
+        }
+        
+        string[] result = await _jsModule.InvokeAsync<string[]>("UploadModal.GetFileData", "Xinputfile00");
+        List<FileData> results = new List<FileData>();
+        foreach (string file in result)
+        {
+            results.Add(new FileData(file));
+        }
+
+        this.Files = results.ToArray();
+
+        if (OnCallbackFunc.HasDelegate)
+        {
+            await OnCallbackFunc.InvokeAsync(Files);
+        }
+    }
+
+    async Task ClickUpload()
+    {
+        if (_jsModule != null) 
+            await _jsModule.InvokeVoidAsync("UploadModal.InvokeClick", "Xinputfile00");
+    }
+
+    public class FileData
+    {
+        public string Base64 { get; set; }
+        public string MIMEType { get; set; }
+
+        public byte[] Bytes
+        {
+            get { return Convert.FromBase64String(this.Base64); }
+        }
+
+        public FileData(string data)
+        {
+            if (string.IsNullOrWhiteSpace(data) || !data.Contains(","))
+            {
+                return;
+            }
+
+            string[] alldata = data.Split(',');
+            this.MIMEType = alldata[0].Remove(0, 5).Replace(";base64", "");
+            this.Base64 = alldata[1];
+        }
+    }
+
+}

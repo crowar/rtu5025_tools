@@ -1,0 +1,86 @@
+@using RtuCommon.Models
+@using RtuTools.Web.Models
+
+<div class="row mb-3">
+    <div class="col-6 col-md-4 text-end">Phone:</div>
+    <div class="col-6 col-md-8">
+        <InputText @bind-Value="OutPhone" class="form-control"></InputText>
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-6 col-md-4 text-end">Period start:</div>
+    <div class="col-3 col-md-4">
+        <DateInput TValue="DateOnly" @bind-Value="@OutStartDate" Placeholder="Enter date"></DateInput>
+    </div>
+    <div class="col-3 col-md-4">
+        <TimeInput TValue="TimeOnly" @bind-Value="@OutStartTime" Placeholder="Enter time"></TimeInput>
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-6 col-md-4 text-end">Period end:</div>
+    <div class="col-3 col-md-4">
+        <DateInput TValue="DateOnly" @bind-Value="@OutEndDate" Placeholder="Enter date"></DateInput>
+    </div>
+    <div class="col-3 col-md-4">
+        <TimeInput TValue="TimeOnly" @bind-Value="@OutEndTime" Placeholder="Enter time"></TimeInput>
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-6 col-md-4 text-end">Always active:</div>
+    <div class="col-6 col-md-4">
+        <Switch @bind-Value="@OutAlways">Always active</Switch>
+    </div>
+</div>
+
+<div class="modal-footer">
+    <Button class="mt-3" Color="ButtonColor.Success" Type="ButtonType.Button" @onclick="OnClickOk">Ok</Button>
+</div>
+
+@code {
+    [Parameter] public string ParamPhone { get; set; }
+    [Parameter] public DateTime? ParamStartDateTime { get; set; }
+    [Parameter] public DateTime? ParamEndDateTime { get; set; }
+    [Parameter] public bool ParamAlways { get; set; }
+    [Parameter] public EventType EventType { get; set; }
+
+    [Parameter] public EventCallback<ContactInfoEventData> OnClickCallback { get; set; }
+
+    private string OutPhone { get; set; }
+    private DateOnly OutStartDate { get; set; }
+    private TimeOnly OutStartTime { get; set; }
+    private DateOnly OutEndDate { get; set; }
+    private TimeOnly OutEndTime { get; set; }
+    private bool OutAlways { get; set; }
+
+
+    protected override void OnInitialized()
+    {
+        OutPhone = ParamPhone;
+        OutStartDate = DateOnly.FromDateTime(ParamStartDateTime?.Date ?? DateTime.Now.Date);
+        OutStartTime = TimeOnly.FromDateTime(ParamStartDateTime ?? DateTime.Now);
+        OutEndDate = DateOnly.FromDateTime(ParamEndDateTime?.Date ?? DateTime.Now.Date);
+        OutEndTime = TimeOnly.FromDateTime(ParamEndDateTime ?? DateTime.Now);
+        OutAlways = ParamAlways;
+
+        base.OnInitialized();
+    }
+
+    private void OnClickOk()
+    {
+        var contactInfoEventData = new ContactInfoEventData
+        {
+            EventType = EventType,
+            OldPhone = ParamPhone,
+            ContactInfo = new ContactInfo
+            {
+                Phone = OutPhone,
+                StartDateTime = OutAlways ? null : new DateTime(OutStartDate.Year, OutStartDate.Month, OutStartDate.Day, OutStartTime.Hour, OutStartTime.Minute, 0),
+                EndDateTime = OutAlways ? null : new DateTime(OutEndDate.Year, OutEndDate.Month, OutEndDate.Day, OutEndTime.Hour, OutEndTime.Minute, 0),
+                Always = OutAlways
+            }
+        };
+
+        OnClickCallback.InvokeAsync(contactInfoEventData);
+    }
+
+}

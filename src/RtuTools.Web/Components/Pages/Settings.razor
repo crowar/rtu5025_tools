@@ -1,0 +1,348 @@
+@page "/settings"
+@using RtuCommon
+@using RtuCommon.Interfaces
+@using RtuCommon.Models.Blocks
+@using RtuCommon.Models.Types
+@using RtuTools.Web.Interfaces
+
+@inject IExcelFileService ExcelFileService
+@inject ILogger<Phones> Logger
+@inject IJSRuntime JsRuntime
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<PageTitle>Settings</PageTitle>
+<HeadContent>
+    <script src="/export_helper.js"></script>
+</HeadContent>
+
+<h3>Settings</h3>
+
+<Toasts class="p-3" Messages="_messages" AutoHide="true" Delay="6000" Placement="ToastsPlacement.TopRight"/>
+
+<div class="container">
+    <div class="row mb-3">
+        <h4>Device: <small class="text-muted">@(_selectedDevice ?? "Not selected")</small></h4>
+    </div>
+    <div class="mb-3">
+        <Dropdown>
+            <DropdownToggleButton Color="ButtonColor.Primary">Select device &nbsp;</DropdownToggleButton>
+            <DropdownMenu>
+                @foreach (var device in _devices)
+                {
+                    <DropdownItem Type="ButtonType.Link" @onclick="() => _selectedDevice = device">@device</DropdownItem>
+                }
+            </DropdownMenu>
+        </Dropdown>
+
+        <Button Color="ButtonColor.Primary" @onclick="ReadDataFromDevice">Read</Button>
+        <Button Color="ButtonColor.Primary" @onclick="WriteDataToDevice">Save</Button>
+        <Button Color="ButtonColor.Primary" @onclick="ImportContacts">Import XLS</Button>
+        <Button Color="ButtonColor.Primary" @onclick="ExportContacts">Export XLS</Button>
+    </div>
+
+    @if (_settings == null)
+    {
+        <div class="row">
+
+            @if (_isStartLoading)
+            {
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning" role="alert">
+                    Data not loaded
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Password</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Password" class="form-control"></InputText>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">SIM Card Phone No</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.PhoneNumber" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">DIN1 Type</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputSelect @bind-Value="_settings.Din1Type" class="form-select">
+                    @foreach (var item in Enum.GetValues(typeof(DinType)))
+                    {
+                        <option value="@item">@item</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">DIN2 Type</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputSelect @bind-Value="_settings.Din2Type" class="form-select">
+                    @foreach (var item in Enum.GetValues(typeof(DinType)))
+                    {
+                        <option value="@item">@item</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">DIN1 Alarm Content</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Din1AlarmContent" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">DIN2 Alarm Content</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Din2AlarmContent" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Auto Arm after authorized number call-in(0~999)</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Auto_Arm_after_authorized_number_call_in" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Arm/Disarm after power on</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputSelect @bind-Value="_settings.Arm_Disarm_after_power_on" class="form-select">
+                    @foreach (var item in Enum.GetValues(typeof(DisarmArmType)))
+                    {
+                        <option value="@item">@item</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Relay Control Authorization</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputSelect @bind-Value="_settings.Relay_Control_Authorization" class="form-select">
+                    @foreach (var item in Enum.GetValues(typeof(ControlAuthorization)))
+                    {
+                        <option value="@item">@item</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Relay swtich ON timer(0~999, Unit:Second)</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Relay_swtich_ON_timer" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">When relay switch ON by authorized number,notify</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputSelect @bind-Value="_settings.When_relay_switch_ON_by_authorized_number_notify" class="form-select">
+                    @foreach (var item in Enum.GetValues(typeof(RelaySwitchType)))
+                    {
+                        <option value="@item">@item</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">When relay switch OFF by authorized number,notify</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputSelect @bind-Value="_settings.When_relay_switch_OFF_by_authorized_number_notify" class="form-select">
+                    @foreach (var item in Enum.GetValues(typeof(RelaySwitchType)))
+                    {
+                        <option value="@item">@item</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">SMS content when relay ON</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.SMS_content_when_relav_ON" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">SMS content when relay OFF</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.SMS_content_when_relay_OFF" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Power source failure alarm delay(0~999,Unit:Min)</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Power_source_failure_alarm_delay" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Self-Check Report Interval(0-999,Unit:Hour)</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Self_Check_Report_Interval" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">GPRS Data Upload Interval Time(0-9999,Unit:Min)</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.GPRS_Data_Upload_Interval_Time" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Server IP Address</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Server_IP_Address" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">Server Port(0-65535)</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.Server_Port" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">GPRS APN</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.GPRS_APN" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">GPRS User Name</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.GPRS_User_Name" class="form-control"></InputText>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6 col-md-4">
+                <label class="form-label">GPRS Password</label>
+            </div>
+            <div class="col-6 col-md-4">
+                <InputText @bind-Value="_settings.GPRS_Password" class="form-control"></InputText>
+            </div>
+        </div>
+    }
+
+</div>
+
+<Modal @ref="_modal"/>
+
+@code {
+    private SettingBlock _settings = SettingBlock.Default();
+    private string? _selectedDevice;
+    private bool _isStartLoading;
+    private Modal _modal = default!;
+
+    private readonly IEnumerable<string> _devices = RtuHelper.GetAvailablePorts();
+
+    private IRtuModule? _rtuModule;
+
+    private List<ToastMessage> _messages = [];
+
+    private void ShowMessage(ToastType toastType, string title, string message) => _messages.Add(new ToastMessage
+    {
+        Type = toastType,
+        Title = title,
+        HelpText = $"{DateTime.Now}",
+        Message = message,
+    });
+
+    private async Task ReadDataFromDevice()
+    {
+        if (_selectedDevice == null)
+        {
+            ShowMessage(ToastType.Warning, "Warning", "Device not selected");
+
+            return;
+        }
+
+        _isStartLoading = true;
+
+        _rtuModule ??= new RtuModule(Logger, _selectedDevice);
+
+
+        _rtuModule.Connect();
+        _settings = _rtuModule.Read<SettingBlock>();
+        _rtuModule.Disconnect();
+
+        _isStartLoading = false;
+
+        ShowMessage(ToastType.Success, "Success", "Data loaded");
+    }
+
+    private async Task WriteDataToDevice()
+    {
+        if (_selectedDevice == null)
+        {
+            ShowMessage(ToastType.Warning, "Warning", "Device not selected");
+            return;
+        }
+
+        _rtuModule ??= new RtuModule(Logger, _selectedDevice);
+
+        _rtuModule.Connect();
+        _rtuModule.Write(_settings);
+        _rtuModule.Disconnect();
+
+        ShowMessage(ToastType.Success, "Success", "Data saved");
+    }
+
+    private async Task ImportContacts()
+    {
+        ShowMessage(ToastType.Warning, "Warning", "Not implemented");
+    }
+
+    private async Task ExportContacts()
+    {
+        ShowMessage(ToastType.Warning, "Warning", "Not implemented");
+    }
+
+}
