@@ -1,4 +1,5 @@
 @page "/phones"
+@using OfficeOpenXml
 @using RtuCommon
 @using RtuCommon.Interfaces
 @using RtuCommon.Models
@@ -152,7 +153,11 @@
         _rtuModule.Connect();
         var numberBlock = new NumberBlock
         {
+            //Добавление контактов без дубликатов по номеру телефона
             Contacts = _contacts
+                .GroupBy(c => c.Phone)
+                .Select(g => g.First())
+                .ToList()
         };
         
         _rtuModule.Write(numberBlock);
@@ -215,8 +220,7 @@
     {
         Logger.LogDebug("ContactsDataProvider called...");
 
-        if (_contacts is null)
-            _contacts = ReadData() ?? [];
+        _contacts ??= ReadData() ?? [];
 
         return await Task.FromResult(request.ApplyTo(_contacts));
     }
@@ -312,10 +316,44 @@
     {
         Logger.LogDebug("ParseFile called...");
         
-        var contacts = await ExcelFileService.GetCollections<ContactInfoReport>(fileData.First().Bytes);
+        using var stream = new MemoryStream(fileData.First().Bytes);
+        using var pck = new ExcelPackage(stream);
+
+        var ws = pck.Workbook.Worksheets.First();
+
+        var contacts = new List<ContactInfoReport>();
+
+        foreach (var row in ws.Rows.Skip(1))
+        {
+            Logger.LogDebug("Обработка строки {RowEndRow}", row.EndRow);
+            
+            var contact = new ContactInfoReport();
+
+            foreach (var col in row.Range)
+            {
+                switch (col.Address.First())
+                {
+                    case 'A':
+                        contact.Phone = col.Text;        
+                        break;
+                    case 'B':
+                        contact.StartDateTime = col.Text;
+                        break;
+                    case 'C':
+                        contact.EndDateTime = col.Text;
+                        break;
+                    case 'D':
+                        contact.Always = col.Text;
+                        break;
+                }
+            }
+            
+            contacts.Add(contact);
+        }
+
         _contacts = contacts.Select(r => r.ToContactInfo()).ToList();
         
-        _modal.HideAsync();
+        await _modal.HideAsync();
     }
 
     private async Task ExportContacts()
