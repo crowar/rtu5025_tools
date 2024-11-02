@@ -27,7 +27,7 @@ public class RtuModule(ILogger logger, string portName, int portSpeed = RtuModul
             _serialPort.Close();
         }
     }
-
+    
     public T Read<T>() where T : IBlock
     {
         var obj = Activator.CreateInstance<T>();
