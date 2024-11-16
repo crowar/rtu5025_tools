@@ -20,7 +20,7 @@ public class ContactInfoReport
     public string Phone { get; set; }
     public string? StartDateTime { get; set; }
     public string? EndDateTime { get; set; }
-    public string Always { get; set; }
+    public string? Always { get; set; }
 
     public ContactInfo ToContactInfo()
     {
@@ -29,17 +29,33 @@ public class ContactInfoReport
             Phone = Phone
         };
 
-        if (Always.Equals("Yes", StringComparison.InvariantCultureIgnoreCase))
+        if (Always != null && Always.Equals("Yes", StringComparison.InvariantCultureIgnoreCase))
         {
             ci.Always = true;
         }
         else
         {
-            DateTime.TryParseExact(StartDateTime, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDateTime);
-            DateTime.TryParseExact(EndDateTime, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDateTime);
+            if (StartDateTime != null)
+            {
+                DateTime.TryParseExact(StartDateTime, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var startDateTime);
+                ci.StartDateTime = startDateTime;
+            }
+            else
+            {
+                ci.StartDateTime = DateTime.Now;
+            }
 
-            ci.StartDateTime = startDateTime;
-            ci.EndDateTime = endDateTime;
+            if (EndDateTime != null)
+            {
+                DateTime.TryParseExact(EndDateTime, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var endDateTime);
+                ci.EndDateTime = endDateTime;
+            }
+            else
+            {
+                ci.EndDateTime = DateTime.Now.AddDays(7);
+            }
         }
 
         return ci;
