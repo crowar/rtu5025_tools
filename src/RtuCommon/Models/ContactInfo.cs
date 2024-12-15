@@ -1,8 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace RtuCommon.Models;
 
 public class ContactInfo
 {
-    public string Phone { get; set; }
+    [Key]
+    public string Phone { get; set; } = null!;
     public DateTime? StartDateTime { get; set; }
     public DateTime? EndDateTime { get; set; }
     public bool Always { get; set; }

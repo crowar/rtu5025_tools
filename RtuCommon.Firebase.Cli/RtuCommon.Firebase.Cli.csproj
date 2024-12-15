@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\RtuCommon.Firebase\RtuCommon.Firebase.csproj" />
+      <ProjectReference Include="..\src\RtuCommon\RtuCommon.csproj" />
     </ItemGroup>
 
 </Project>

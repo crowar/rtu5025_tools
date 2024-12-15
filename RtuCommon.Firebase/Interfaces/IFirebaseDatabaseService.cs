@@ -2,10 +2,7 @@ namespace RtuCommon.Firebase.Interfaces;
 
 public interface IFirebaseDatabaseService
 {
-    // Task<IEnumerable<T>> ReadAsync<T>() where T : class;
-    
-    // void WriteAsync<T>(IEnumerable<T> data, CancellationToken token = default) where T : class;
-    
-    Task SaveCollectionAsync<T>(string path, IEnumerable<T> collection);
+    Task SaveCollectionAsync<T>(string path, IEnumerable<T> collection) where T : class;
 
+    Task<IEnumerable<T>> ReadCollectionAsync<T>(string path) where T : class;
 }

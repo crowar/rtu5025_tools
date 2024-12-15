@@ -112,9 +112,9 @@ public abstract class AbstractBlock : IBlock
     {
         var result = new List<byte>();
         
-        result.AddRange(new byte[] { 0x23, 0x83, 0x00 });
+        result.AddRange([0x23, 0x83, 0x00]);
         result.AddRange(page.ToString("x4").ToBytesFromHexString());
-        result.AddRange(new byte[] { 0x00, 0x00, 0x00 });
+        result.AddRange([0x00, 0x00, 0x00]);
         result.Add(Shift(page));
         
         return result.ToArray();
